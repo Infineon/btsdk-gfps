@@ -735,6 +735,32 @@ static wiced_bool_t gfps_provider_gatt_event_attribute_request_handler_read(wice
         p_attr      = (uint8_t *) gfps_provider_cb.gatt.accountkey;
     }
 
+#if BTSTACK_VER > 0x01020000
+    if (p_event_data->attribute_request.data.read_req.offset >= attr_len)
+    {
+        GFPS_TRACE("offset:%d larger than attribute length:%d\n",
+                p_event_data->attribute_request.data.read_req.offset,
+                attr_len);
+        wiced_bt_gatt_server_send_error_rsp(
+                p_event_data->attribute_request.conn_id,
+                p_event_data->attribute_request.opcode,
+                p_event_data->attribute_request.data.read_req.handle,
+                WICED_BT_GATT_INVALID_OFFSET);
+        *p_result = WICED_BT_GATT_INVALID_OFFSET;
+        return WICED_TRUE;
+    }
+
+    attr_len_to_copy = MIN(p_event_data->attribute_request.len_requested,
+            attr_len - p_event_data->attribute_request.data.read_req.offset);
+
+    wiced_bt_gatt_server_send_read_handle_rsp(
+            p_event_data->attribute_request.conn_id,
+            p_event_data->attribute_request.opcode,
+            attr_len_to_copy,
+            p_attr + p_event_data->attribute_request.data.read_req.offset,
+            NULL);
+
+#else /* !BTSTACK_VER */
     /* Check total data length to be filled. */
     if (p_event_data->attribute_request.data.read_req.offset >= attr_len)
     {
@@ -759,6 +785,7 @@ static wiced_bool_t gfps_provider_gatt_event_attribute_request_handler_read(wice
     }
 
     *p_event_data->attribute_request.data.read_req.p_val_len = attr_len_to_copy;
+#endif /* BTSTACK_VER */
 
     *p_result = WICED_BT_GATT_SUCCESS;
 
@@ -1180,6 +1207,55 @@ static wiced_bool_t gfps_provider_gatt_event_attribute_request_handler_write(wic
 
 static wiced_bool_t gfps_provider_gatt_event_attribute_request_handler(wiced_bt_gatt_event_data_t *p_event_data, wiced_bt_gatt_status_t *p_result)
 {
+#if BTSTACK_VER > 0x01020000
+    wiced_bool_t ret;
+
+    GFPS_TRACE("gfps_provider_gatt_event_attribute_request_handler (opcode: %d)\n",
+               p_event_data->attribute_request.opcode);
+
+    switch (p_event_data->attribute_request.opcode)
+    {
+        case GATT_REQ_READ:
+        case GATT_REQ_READ_BLOB:
+            return gfps_provider_gatt_event_attribute_request_handler_read(p_event_data, p_result);
+
+        /* TODO */
+#if 0
+        case GATT_REQ_READ_BY_TYPE:
+            return gfps_provider_gatt_event_attribute_request_handler_read_by_type(p_event_data, p_result);
+
+        case GATT_REQ_READ_MULTI:
+        case GATT_REQ_READ_MULTI_VAR_LENGTH:
+            return gfps_provider_gatt_event_attribute_request_handler_read_multi(p_event_data, p_result);
+#endif
+
+        case GATT_REQ_WRITE:
+        case GATT_CMD_WRITE:
+        case GATT_CMD_SIGNED_WRITE:
+            ret = gfps_provider_gatt_event_attribute_request_handler_write(p_event_data, p_result);
+            if (ret)
+            {
+                if (*p_result == WICED_BT_GATT_SUCCESS)
+                {
+                    wiced_bt_gatt_server_send_write_rsp(
+                            p_event_data->attribute_request.conn_id,
+                            p_event_data->attribute_request.opcode,
+                            p_event_data->attribute_request.data.write_req.handle);
+                }
+                else
+                {
+                    wiced_bt_gatt_server_send_error_rsp(
+                            p_event_data->attribute_request.conn_id,
+                            p_event_data->attribute_request.opcode,
+                            p_event_data->attribute_request.data.write_req.handle,
+                            *p_result);
+                }
+            }
+
+            return ret;
+    }
+
+#else /* !BTSTACK_VER */
     GFPS_TRACE("gfps_provider_gatt_event_attribute_request_handler (type: %d)\n",
                p_event_data->attribute_request.request_type);
 
@@ -1198,6 +1274,7 @@ static wiced_bool_t gfps_provider_gatt_event_attribute_request_handler(wiced_bt_
     case GATTS_REQ_TYPE_CONF:
         break;
     }
+#endif /* BTSTACK_VER */
 
     return WICED_FALSE;
 }
@@ -1225,6 +1302,26 @@ static wiced_bt_gatt_status_t gfps_provider_gatt_event_callback( wiced_bt_gatt_e
                 return result;
             }
             break;
+#if BTSTACK_VER > 0x01020000
+        case GATT_GET_RESPONSE_BUFFER_EVT:
+            p_event_data->buffer_request.buffer.p_app_rsp_buffer =
+                wiced_bt_get_buffer(p_event_data->buffer_request.len_requested);
+            p_event_data->buffer_request.buffer.p_app_ctxt = wiced_bt_free_buffer;
+            return WICED_BT_GATT_SUCCESS;
+
+        case GATT_APP_BUFFER_TRANSMITTED_EVT:
+            {
+                void (*pfn_free)(uint8_t *) =
+                    (void (*)(uint8_t *))p_event_data->buffer_xmitted.p_app_ctxt;
+
+                /* If the buffer is dynamic, the context will point to a function to free it. */
+                if (pfn_free)
+                    pfn_free(p_event_data->buffer_xmitted.p_app_data);
+
+                return WICED_BT_GATT_SUCCESS;
+            }
+            break;
+#endif /* BTSTACK_VER */
         default:
             break;
         }
@@ -1252,6 +1349,23 @@ void wiced_bt_gfps_provider_advertisement_start(uint8_t discoverability)
 
         wiced_bt_ble_set_raw_advertisement_data(gfps_provider_cb.adv_data.discoverable.elem_num,
                                                 gfps_provider_cb.adv_data.discoverable.p_elem);
+
+#if BTSTACK_VER > 0x01020000
+        /* In newer BTSTACK, it had been updated to use new HCI command set of
+         * extended advertisement in all related WICED APIs. Per spec,
+         * SCAN_RESP data is mandotary for HCI_LE_Set_Extended_Advertising_Enable
+         * with scannable advertising and it's uncompatible with original
+         * HCI_LE_Set_Advertising_Enable.
+         * To keep backward compatibility, here we set user appended data as
+         * SCAN_RESP data. This method here only works if user appended data
+         * is not empty.
+         * NOTE: set SCAN_RESP data is required to be done after
+         * wiced_bt_ble_set_raw_advertisement_data
+         */
+        wiced_bt_ble_set_raw_scan_response_data(
+                gfps_provider_cb.conf.appended_adv_data.elem_num,
+                gfps_provider_cb.conf.appended_adv_data.p_elem);
+#endif
 
         wiced_bt_start_advertisements(BTM_BLE_ADVERT_UNDIRECTED_HIGH, 0, NULL);
     }
@@ -1296,8 +1410,17 @@ static wiced_bt_gatt_status_t gfps_provider_raw_response_send( uint8_t *aes_key 
     gfps_provider_data_hex_display((uint8_t *) &en_resp, sizeof(gfps_raw_response_t));
 
     /* notify key-based pairing characteristic */
+#if BTSTACK_VER > 0x01020000
+    return wiced_bt_gatt_server_send_notification(
+            gfps_provider_cb.conn_id,
+            gfps_provider_cb.conf.gatt_db_handle.key_pairing_val,
+            sizeof(en_resp),
+            (uint8_t *)&en_resp,
+            NULL);
+#else
     return wiced_bt_gatt_send_notification (gfps_provider_cb.conn_id,
             gfps_provider_cb.conf.gatt_db_handle.key_pairing_val, sizeof(en_resp), (uint8_t *)&en_resp );
+#endif
 
 }
 
@@ -1319,8 +1442,17 @@ static wiced_bt_gatt_status_t gfps_provider_raw_passkey_send(uint8_t *aes_key)
     fastpair_sec_aes_ecb_128_encrypt((uint8_t *)&en_passkey, (uint8_t *)&raw_passkey, aes_key);
 
     /* notify key-based pairing characteristic */
+#if BTSTACK_VER > 0x01020000
+    return wiced_bt_gatt_server_send_notification(
+            gfps_provider_cb.conn_id,
+            gfps_provider_cb.conf.gatt_db_handle.passkey_val,
+            sizeof(en_passkey),
+            (uint8_t *)&en_passkey,
+            NULL);
+#else
     return wiced_bt_gatt_send_notification (gfps_provider_cb.conn_id,
             gfps_provider_cb.conf.gatt_db_handle.passkey_val, sizeof(en_passkey), (uint8_t *)&en_passkey );
+#endif
 }
 
 void wiced_bt_gfps_provider_seeker_passkey_set(uint32_t passkey)
