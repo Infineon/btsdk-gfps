@@ -83,7 +83,7 @@ return_type smp_aes_decrypt( const unsigned char in[N_BLOCK],
                         const aes_context ctx[1] );
 
 //uECC declaration
-#if (defined(CYW43012C0) || BTSTACK_VER >= 0x01020000)
+#if (defined(CYW43012C0) || BTSTACK_VER >= 0x03000001)
 #define KEY_LENGTH_DWORDS_P256  8
 #define BT_OCTET32_LEN          32
 struct _point
@@ -159,7 +159,7 @@ static void memcpy_r(void* to, const void* from, uint8_t len)
 
 int fastpair_sec_uecc_shared_secret(uint8_t *peer_pub_key, uint8_t *priv_key, uint8_t *secret)
 {
-#if (defined(CYW43012C0) || BTSTACK_VER >= 0x01020000)
+#if (defined(CYW43012C0) || BTSTACK_VER >= 0x03000001)
     Point       peer_publ_key, new_publ_key;
     uint8_t     private_key[32];
     uint8_t     sec[32];

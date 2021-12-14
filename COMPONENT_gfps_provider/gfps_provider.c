@@ -397,14 +397,10 @@ wiced_bool_t wiced_bt_gfps_provider_init(wiced_bt_gfps_provider_conf_t *p_conf)
     /* Init. the Random Salt update timer if set. */
     if (gfps_provider_cb.conf.account_key_filter_generate_random)
     {
-        if (wiced_init_timer(&gfps_provider_cb.random_salt_update_timer,
-                             &gfps_provider_random_salt_update,
-                             0,
-                             WICED_SECONDS_TIMER) != WICED_SUCCESS)
-        {
-            GFPS_TRACE("Fail to init. random salt update timer.\n");
-            goto WICED_BT_GFPS_PROVIDER_INIT_FAIL;
-        }
+        wiced_init_timer(&gfps_provider_cb.random_salt_update_timer,
+                         &gfps_provider_random_salt_update,
+                         0,
+                         WICED_SECONDS_TIMER);
     }
 
     /* Generate the random salt number. */
@@ -414,24 +410,16 @@ wiced_bool_t wiced_bt_gfps_provider_init(wiced_bt_gfps_provider_conf_t *p_conf)
     }
 
     /* Init. the decrypt failure reset timer. */
-    if (wiced_init_timer(&gfps_provider_cb.decrypt_failure_reset_timer,
-                         &gfps_provider_decrypt_failure_count_reset,
-                         0,
-                         WICED_SECONDS_TIMER) != WICED_SUCCESS)
-    {
-        GFPS_TRACE("Fail to init. decrypt failure reset timer.\n");
-        goto WICED_BT_GFPS_PROVIDER_INIT_FAIL;
-    }
+    wiced_init_timer(&gfps_provider_cb.decrypt_failure_reset_timer,
+                     &gfps_provider_decrypt_failure_count_reset,
+                     0,
+                     WICED_SECONDS_TIMER);
 
     /* Init. the discoverability timer. */
-    if (wiced_init_timer(&gfps_provider_cb.discoverable_timer,
-                         &gfps_provider_discoverable_stop,
-                         0,
-                         WICED_SECONDS_TIMER) != WICED_SUCCESS)
-    {
-        GFPS_TRACE("Fail to init. discoverability timer.\n");
-        goto WICED_BT_GFPS_PROVIDER_INIT_FAIL;
-    }
+    wiced_init_timer(&gfps_provider_cb.discoverable_timer,
+                     &gfps_provider_discoverable_stop,
+                     0,
+                     WICED_SECONDS_TIMER);
 
     /* Init. advertisement data. */
     if (gfps_provider_advertisement_data_init() == WICED_FALSE)
@@ -452,11 +440,8 @@ wiced_bool_t wiced_bt_gfps_provider_init(wiced_bt_gfps_provider_conf_t *p_conf)
     /* Start the Random Salt Update timer. */
     if (gfps_provider_cb.conf.account_key_filter_generate_random)
     {
-        if (wiced_start_timer(&gfps_provider_cb.random_salt_update_timer,
-                              GFPS_PROVIDER_RANDOM_SALT_UPDATE_TIME) != WICED_BT_SUCCESS)
-        {
-            goto WICED_BT_GFPS_PROVIDER_INIT_FAIL;
-        }
+        wiced_start_timer(&gfps_provider_cb.random_salt_update_timer,
+                          GFPS_PROVIDER_RANDOM_SALT_UPDATE_TIME);
     }
 
     /* Set the enabled flag. */
@@ -735,7 +720,7 @@ static wiced_bool_t gfps_provider_gatt_event_attribute_request_handler_read(wice
         p_attr      = (uint8_t *) gfps_provider_cb.gatt.accountkey;
     }
 
-#if BTSTACK_VER > 0x01020000
+#if BTSTACK_VER >= 0x03000001
     if (p_event_data->attribute_request.data.read_req.offset >= attr_len)
     {
         GFPS_TRACE("offset:%d larger than attribute length:%d\n",
@@ -936,13 +921,8 @@ static wiced_bool_t gfps_provider_gatt_event_attribute_request_handler_write_key
         if (gfps_provider_cb.decrypt_failure_count == GFPS_PROVIDER_DECRYPT_FAILURE_COUNT_MAX)
         {
             /* Start timer to reset the decrypt failure count after 5 minutes. */
-            if (wiced_start_timer(&gfps_provider_cb.decrypt_failure_reset_timer,
-                                  GFPS_PROVIDER_DECRYPT_FAILURE_COUNT_RESET_TIMEOUT) != WICED_SUCCESS)
-            {
-                GFPS_TRACE("fail to start the decrypt failure count reset timer\n");
-
-                gfps_provider_cb.decrypt_failure_count = 0;
-            }
+            wiced_start_timer(&gfps_provider_cb.decrypt_failure_reset_timer,
+                              GFPS_PROVIDER_DECRYPT_FAILURE_COUNT_RESET_TIMEOUT);
         }
 
         *p_result = WICED_BT_GATT_AUTH_FAIL;
@@ -1207,7 +1187,7 @@ static wiced_bool_t gfps_provider_gatt_event_attribute_request_handler_write(wic
 
 static wiced_bool_t gfps_provider_gatt_event_attribute_request_handler(wiced_bt_gatt_event_data_t *p_event_data, wiced_bt_gatt_status_t *p_result)
 {
-#if BTSTACK_VER > 0x01020000
+#if BTSTACK_VER >= 0x03000001
     wiced_bool_t ret;
 
     GFPS_TRACE("gfps_provider_gatt_event_attribute_request_handler (opcode: %d)\n",
@@ -1302,7 +1282,7 @@ static wiced_bt_gatt_status_t gfps_provider_gatt_event_callback( wiced_bt_gatt_e
                 return result;
             }
             break;
-#if BTSTACK_VER > 0x01020000
+#if BTSTACK_VER >= 0x03000001
         case GATT_GET_RESPONSE_BUFFER_EVT:
             p_event_data->buffer_request.buffer.p_app_rsp_buffer =
                 wiced_bt_get_buffer(p_event_data->buffer_request.len_requested);
@@ -1350,7 +1330,7 @@ void wiced_bt_gfps_provider_advertisement_start(uint8_t discoverability)
         wiced_bt_ble_set_raw_advertisement_data(gfps_provider_cb.adv_data.discoverable.elem_num,
                                                 gfps_provider_cb.adv_data.discoverable.p_elem);
 
-#if BTSTACK_VER > 0x01020000
+#if BTSTACK_VER >= 0x03000001
         /* In newer BTSTACK, it had been updated to use new HCI command set of
          * extended advertisement in all related WICED APIs. Per spec,
          * SCAN_RESP data is mandotary for HCI_LE_Set_Extended_Advertising_Enable
@@ -1410,7 +1390,7 @@ static wiced_bt_gatt_status_t gfps_provider_raw_response_send( uint8_t *aes_key 
     gfps_provider_data_hex_display((uint8_t *) &en_resp, sizeof(gfps_raw_response_t));
 
     /* notify key-based pairing characteristic */
-#if BTSTACK_VER > 0x01020000
+#if BTSTACK_VER >= 0x03000001
     return wiced_bt_gatt_server_send_notification(
             gfps_provider_cb.conn_id,
             gfps_provider_cb.conf.gatt_db_handle.key_pairing_val,
@@ -1442,7 +1422,7 @@ static wiced_bt_gatt_status_t gfps_provider_raw_passkey_send(uint8_t *aes_key)
     fastpair_sec_aes_ecb_128_encrypt((uint8_t *)&en_passkey, (uint8_t *)&raw_passkey, aes_key);
 
     /* notify key-based pairing characteristic */
-#if BTSTACK_VER > 0x01020000
+#if BTSTACK_VER >= 0x03000001
     return wiced_bt_gatt_server_send_notification(
             gfps_provider_cb.conn_id,
             gfps_provider_cb.conf.gatt_db_handle.passkey_val,
@@ -2179,11 +2159,8 @@ void wiced_bt_gfps_provider_enable(void)
     // Random Salt update timer
     if (gfps_provider_cb.conf.account_key_filter_generate_random)
     {
-        if (wiced_start_timer(&gfps_provider_cb.random_salt_update_timer,
-                              GFPS_PROVIDER_RANDOM_SALT_UPDATE_TIME) != WICED_BT_SUCCESS)
-        {
-            GFPS_TRACE("Random Salt update timer fail\n");
-        }
+        wiced_start_timer(&gfps_provider_cb.random_salt_update_timer,
+                          GFPS_PROVIDER_RANDOM_SALT_UPDATE_TIME);
     }
 
     /* Start the BLE advertisement. */
@@ -2198,24 +2175,16 @@ void wiced_bt_gfps_provider_enable(void)
     GFPS_TRACE("wiced_bt_gfps_provider_init\n");
 
     /* Init. the decrypt failure reset timer. */
-    if (wiced_init_timer(&gfps_provider_cb.decrypt_failure_reset_timer,
-                         &gfps_provider_decrypt_failure_count_reset,
-                         0,
-                         WICED_SECONDS_TIMER) != WICED_SUCCESS)
-    {
-        GFPS_TRACE("Fail to init. decrypt failure reset timer.\n");
-        goto WICED_BT_GFPS_PROVIDER_INIT_FAIL;
-    }
+    wiced_init_timer(&gfps_provider_cb.decrypt_failure_reset_timer,
+                     &gfps_provider_decrypt_failure_count_reset,
+                     0,
+                     WICED_SECONDS_TIMER);
 
     /* Init. the discoverability timer. */
-    if (wiced_init_timer(&gfps_provider_cb.discoverable_timer,
-                         &gfps_provider_discoverable_stop,
-                         0,
-                         WICED_SECONDS_TIMER) != WICED_SUCCESS)
-    {
-        GFPS_TRACE("Fail to init. discoverability timer.\n");
-        goto WICED_BT_GFPS_PROVIDER_INIT_FAIL;
-    }
+    wiced_init_timer(&gfps_provider_cb.discoverable_timer,
+                     &gfps_provider_discoverable_stop,
+                     0,
+                     WICED_SECONDS_TIMER);
 
     /* Init. advertisement data. */
     if (gfps_provider_advertisement_data_init() == WICED_FALSE)
@@ -2327,10 +2296,5 @@ static void gfps_provider_set_br_edr_discoverable(uint8_t second, wiced_bool_t f
     wiced_bt_gfps_provider_advertisement_start(1);
 
     /* Start timer to disable the discoverablity after timeout. */
-    if (wiced_start_timer(&gfps_provider_cb.discoverable_timer, second) != WICED_SUCCESS)
-    {
-        GFPS_TRACE("fail to start the decrypt failure count reset timer\n");
-
-        gfps_provider_cb.decrypt_failure_count = 0;
-    }
+    wiced_start_timer(&gfps_provider_cb.discoverable_timer, second);
 }
