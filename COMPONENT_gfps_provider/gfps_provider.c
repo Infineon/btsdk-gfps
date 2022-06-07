@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2021, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2016-2022, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -254,13 +254,13 @@ static uint8_t                  gfps_provider_account_key_used_num_get(void);
 static void                     gfps_provider_advertisement_data_disc_update(wiced_bool_t model_id);
 static wiced_bool_t             gfps_provider_advertisement_data_init(void);
 static void                     gfps_provider_advertisement_data_not_disc_update(void);
-static void                     gfps_provider_decrypt_failure_count_reset(uint32_t params);
-static void                     gfps_provider_discoverable_stop(uint32_t params);
+static void                     gfps_provider_decrypt_failure_count_reset(TIMER_PARAM_TYPE params);
+static void                     gfps_provider_discoverable_stop(TIMER_PARAM_TYPE params);
 static wiced_bt_gatt_status_t   gfps_provider_gatt_event_callback( wiced_bt_gatt_evt_t event, wiced_bt_gatt_event_data_t *p_event_data );
 static wiced_bool_t             gfps_provider_key_aes_calculate(uint8_t *public_key, uint8_t *private_key, uint8_t *aes_key);
 static wiced_bool_t             gfps_provider_raw_request_content_check(gfps_raw_request_t *p_raw_request);
 static wiced_bt_gatt_status_t   gfps_provider_raw_response_send(uint8_t *aes_key);
-static void                     gfps_provider_random_salt_update(uint32_t params);
+static void                     gfps_provider_random_salt_update(TIMER_PARAM_TYPE params);
 //static void                     gfps_provider_set_disc_advertisement_data(wiced_bool_t model_id);
 //static void                     gfps_provider_set_non_disc_advertisement_data( void );
 static wiced_bt_gatt_status_t   gfps_provider_raw_passkey_send(uint8_t *aes_key);
@@ -1790,7 +1790,7 @@ FASTPAIR_ACCOUNT_KEY_UPDATE_NVRAM_WRITE:
     gfps_provider_account_key_list_display();
 }
 
-static void gfps_provider_random_salt_update(uint32_t params)
+static void gfps_provider_random_salt_update(TIMER_PARAM_TYPE params)
 {
     GFPS_TRACE("gfps_provider_random_salt_update\n");
 
@@ -1801,14 +1801,14 @@ static void gfps_provider_random_salt_update(uint32_t params)
     gfps_provider_advertisement_data_not_disc_update();
 }
 
-static void gfps_provider_decrypt_failure_count_reset(uint32_t params)
+static void gfps_provider_decrypt_failure_count_reset(TIMER_PARAM_TYPE params)
 {
     GFPS_TRACE("gfps_provider_decrypt_failure_count_reset\n");
 
     gfps_provider_cb.decrypt_failure_count = 0;
 }
 
-static void gfps_provider_discoverable_stop(uint32_t params)
+static void gfps_provider_discoverable_stop(TIMER_PARAM_TYPE params)
 {
     GFPS_TRACE("gfps_provider_discoverable_stop\n");
 
