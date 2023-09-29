@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2022, Cypress Semiconductor Corporation (an Infineon company) or
+ * Copyright 2016-2023, Cypress Semiconductor Corporation (an Infineon company) or
  * an affiliate of Cypress Semiconductor Corporation.  All rights reserved.
  *
  * This software, including source code, documentation and related
@@ -44,7 +44,7 @@
 #include "wiced.h"
 #include "wiced_bt_gatt.h"
 
-/* Definition used for BLE Advertisement Data. */
+/* Definition used for LE Advertisement Data. */
 /** 16-bit UUID used for Google Fast Pair Service */
 #define WICED_BT_GFPS_UUID16                            0xFE2C
 
@@ -70,7 +70,7 @@
  */
 typedef struct WICED_BT_GFPS_PROVIDER_CONF
 {
-    /** BLE tx power level */
+    /** LE tx power level */
     int8_t                  ble_tx_pwr_level;
 
     /** Callback for GATT events. */
@@ -100,7 +100,7 @@ typedef struct WICED_BT_GFPS_PROVIDER_CONF
      * Generate Account Key filter using one-byte random number
      *
      * WICED_TRUE: The Account Key filter will be generated using Random number.
-     * WICED_FALSE: The Account Key filter will be generated using current BLE Resolvable Private
+     * WICED_FALSE: The Account Key filter will be generated using current LE Resolvable Private
      *              Address
      */
     wiced_bool_t            account_key_filter_generate_random;
@@ -126,7 +126,7 @@ typedef struct WICED_BT_GFPS_ACCOUNT_KEY
 } wiced_bt_gfps_account_key_t;
 
 /**
- * Acquire current BLE Advertisement Data used for Google Fast Pair Service
+ * Acquire current LE Advertisement Data used for Google Fast Pair Service
  *
  * @param[out]  p_elem - address to the memory where stores current advertisement data content
  *
@@ -138,7 +138,7 @@ typedef struct WICED_BT_GFPS_ACCOUNT_KEY
 uint8_t wiced_bt_gfps_provider_advertisement_data_get(wiced_bt_ble_advert_elem_t **p_elem);
 
 /**
- * Update BLE advertisement data
+ * Update LE advertisement data
  *
  * @param[in]   advert_type - advertisement data type
  * @param[in]   data_len - length of element data
@@ -153,7 +153,7 @@ uint8_t wiced_bt_gfps_provider_advertisement_data_get(wiced_bt_ble_advert_elem_t
 void wiced_bt_gfps_provider_advertisement_data_update(wiced_bt_ble_advert_type_t advert_type, uint16_t data_len, uint8_t *p_data);
 
 /**
- * Update user appended BLE advertisement data
+ * Update user appended LE advertisement data
  *
  * @param[in]   p_elem - pointer to the element(s)
  * @param[in]   elem_num - element count
@@ -163,7 +163,7 @@ void wiced_bt_gfps_provider_advertisement_data_update(wiced_bt_ble_advert_type_t
 wiced_bool_t wiced_bt_gfps_provider_advertisement_data_appended_data_update(wiced_bt_ble_advert_elem_t *p_elem, uint8_t elem_num);
 
 /**
- * Start the Google Fast Pair Service Provider BLE Advertisement
+ * Start the Google Fast Pair Service Provider LE Advertisement
  *
  * @param[in]   discoverability
  *              0: Not Discoverability Advertisement
@@ -188,7 +188,7 @@ wiced_bool_t wiced_bt_gfps_provider_init(wiced_bt_gfps_provider_conf_t *p_conf);
 void wiced_bt_gfps_provider_seeker_passkey_set(uint32_t passkey);
 
 /**
- * Set BLE discoverability. Calling this utility effects the BLE advertisement data content
+ * Set LE discoverability. Calling this utility effects the LE advertisement data content
  *
  * @param[in]   discoverable
  */
@@ -205,8 +205,8 @@ wiced_bool_t wiced_bt_gfps_provider_pairing_state_get(void);
  * Disable Google Fast Pair Servicer provider module.
  *
  * By calling this utility, the following capabilities will be terminated:
- *  1. BLE advertisement
- *  2. Existent BLE connection for Google Fast Pair Service
+ *  1. LE advertisement
+ *  2. Existent LE connection for Google Fast Pair Service
  *
  */
 void wiced_bt_gfps_provider_disable(void);
@@ -221,12 +221,12 @@ void wiced_bt_gfps_provider_disable(void);
  * the provider module for some reasons.
  *
  * By calling this utility, the provider module will:
- * 1. Update the BLE advertisement data (including the discoverable and the not discoverable data).
- * 2. Start the BLE advertisement again
+ * 1. Update the LE advertisement data (including the discoverable and the not discoverable data).
+ * 2. Start the LE advertisement again
  *
  *
  * Note:
- * 1. The BLE advertisement will be set to not-discoverable mode. User application shall
+ * 1. The LE advertisement will be set to not-discoverable mode. User application shall
  *    use wiced_bt_gfps_provider_discoverability_set() to switch to discoverable mode if
  *    application wants to switch to discoverable mode after enabling.
  */
